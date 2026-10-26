@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --color-techblack: #0A0A0A;
+  --color-gold: #E5A91A;
+  --color-crimson: #C41E3A;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.font-heading {
+  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0A0A0A;
+  color: #E5A91A;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Minimal clean scrollbar in Tech Black & Gold */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: #E5A91A;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C41E3A;
+}

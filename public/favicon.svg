@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Tech Black Base -->
+  <rect width="512" height="512" rx="128" fill="#0A0A0A" />
+  
+  <g stroke-linecap="round" stroke-width="56">
+    <!-- Top Step: Planning / Lead-up -->
+    <line x1="224" y1="168" x2="368" y2="168" stroke="#E5A91A" />
+    
+    <!-- Core Line: The Event Execution -->
+    <line x1="144" y1="256" x2="368" y2="256" stroke="#C41E3A" />
+    
+    <!-- Bottom Step: Wrap up / Khata -->
+    <line x1="144" y1="344" x2="288" y2="344" stroke="#E5A91A" />
+  </g>
+</svg>
