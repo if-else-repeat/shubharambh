@@ -90,7 +90,7 @@ export function processAssistantOffline(
             newActualCost: newCost,
             rationale,
           });
-          recommendations.push(`${vendor.name} (${vendor.category}): Trim ₹${actualCut.toLocaleString('en-IN')} — ${rationale}`);
+          recommendations.push(`${vendor.name} (${vendor.category}): Trim ₹${actualCut.toLocaleString('en-IN')} - ${rationale}`);
         }
       });
     }
@@ -124,7 +124,7 @@ Total proposed rebalancing: **₹${totalCuts.toLocaleString('en-IN')}**. Click *
   }
 
   // 2. Ideas: Decor / Floral
-  if (lower.includes('decor') || lower.includes('floral') || lower.includes('theme') || lower.includes('stage')) {
+  if (lower.includes('decor') || lower.includes('floral') || lower.includes('theme') || /\bstage\b/.test(lower)) {
     if (isMicro) {
       return {
         reply: `Here are 3 minimal, high-aesthetic decor concepts tailored for an intimate ${event.name} (₹${currentCap.toLocaleString('en-IN')} budget):

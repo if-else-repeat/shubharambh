@@ -199,10 +199,11 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+              <label htmlFor="vendor-form-name" className="block text-xs font-bold text-[#E5A91A] mb-1">
                 Vendor / Expense Name *
               </label>
               <input
+                id="vendor-form-name"
                 type="text"
                 required
                 placeholder="e.g. Royal Marigold Decor or Wedding Cake"
@@ -213,8 +214,9 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">Category</label>
+              <label htmlFor="vendor-form-category" className="block text-xs font-bold text-[#E5A91A] mb-1">Category</label>
               <select
+                id="vendor-form-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full text-xs px-3 py-2 bg-[#0A0A0A] border border-[#E5A91A]/50 rounded font-medium text-[#E5A91A] focus:outline-none focus:border-[#E5A91A]"
@@ -233,8 +235,9 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">Status</label>
+              <label htmlFor="vendor-form-status" className="block text-xs font-bold text-[#E5A91A] mb-1">Status</label>
               <select
+                id="vendor-form-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'Pending' | 'Booked' | 'Paid')}
                 className="w-full text-xs px-3 py-2 bg-[#0A0A0A] border border-[#E5A91A]/50 rounded font-medium text-[#E5A91A] focus:outline-none focus:border-[#E5A91A]"
@@ -246,10 +249,11 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+              <label htmlFor="vendor-form-cost" className="block text-xs font-bold text-[#E5A91A] mb-1">
                 Cost (₹) *
               </label>
               <input
+                id="vendor-form-cost"
                 type="number"
                 required
                 min="0"

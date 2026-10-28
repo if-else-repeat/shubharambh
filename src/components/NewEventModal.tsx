@@ -135,10 +135,11 @@ export const NewEventModal: React.FC<NewEventModalProps> = ({
 
         <form onSubmit={handleCreateBlank} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+            <label htmlFor="modal-event-name" className="block text-xs font-bold text-[#E5A91A] mb-1">
               Celebration Name *
             </label>
             <input
+              id="modal-event-name"
               type="text"
               required
               placeholder="e.g. Aanya's 1st Birthday or Priya & Kabir's Haldi"
@@ -150,10 +151,11 @@ export const NewEventModal: React.FC<NewEventModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+              <label htmlFor="modal-budget-cap" className="block text-xs font-bold text-[#E5A91A] mb-1">
                 Budget Cap (₹)
               </label>
               <input
+                id="modal-budget-cap"
                 type="number"
                 placeholder="e.g. 50000 or 1500000"
                 value={budgetCap}
@@ -163,10 +165,11 @@ export const NewEventModal: React.FC<NewEventModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+              <label htmlFor="modal-guest-count" className="block text-xs font-bold text-[#E5A91A] mb-1">
                 Expected Guests
               </label>
               <input
+                id="modal-guest-count"
                 type="number"
                 placeholder="e.g. 25 or 300"
                 value={guestCount}
@@ -177,10 +180,11 @@ export const NewEventModal: React.FC<NewEventModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+            <label htmlFor="modal-target-date" className="block text-xs font-bold text-[#E5A91A] mb-1">
               Target Date (Optional)
             </label>
             <input
+              id="modal-target-date"
               type="text"
               placeholder="e.g. Dec 15, 2026 or Next Sunday"
               value={date}

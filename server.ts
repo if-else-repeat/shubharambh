@@ -4,11 +4,6 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
-import {
-  parseNaturalCommandOffline,
-  generateTradeOffScenariosOffline,
-  interrogateVendorQuoteOffline,
-} from './src/services/offlineFallback.ts';
 import { processAssistantOffline } from './src/services/assistantEngine.ts';
 import { sanitizeInput } from './src/utils/sanitize.ts';
 
@@ -21,7 +16,15 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  app.use(express.json({ limit: '2mb' }));
+  // Security headers & body limit
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+  app.use(express.json({ limit: '100kb' }));
 
   // Initialize Gemini if API key is provided
   let ai: GoogleGenAI | null = null;
@@ -43,251 +46,6 @@ async function startServer() {
     console.log('No GEMINI_API_KEY detected. Running in deterministic offline fallback mode.');
   }
 
-  // 1. Natural Language Command Parser Route
-  app.post('/api/gemini/parse-command', async (req, res) => {
-    const { input, currentState } = req.body;
-    const sanitized = sanitizeInput(input || '');
-
-    if (!sanitized) {
-      return res.status(400).json({ error: 'Command text is required.' });
-    }
-
-    if (!ai) {
-      const offlineResult = parseNaturalCommandOffline(sanitized, currentState);
-      return res.json(offlineResult);
-    }
-
-    try {
-      const prompt = `You are the core natural language command engine for "shubharambh." - a fintech event OS.
-Input text from user: "${sanitized}"
-Current event vendors: ${JSON.stringify(currentState?.budgetItems?.map((b: any) => ({ name: b.vendorName, category: b.category })) || [])}
-
-Parse the input into exact actionType:
-- 'VENDOR_PAYMENT' if user mentions paying a vendor or advance
-- 'GUEST_HEADCOUNT' if user mentions guests arriving, attending, veg/non-veg counts
-- 'CATERER_PLATE' if user mentions caterer plate count claimed
-- 'TASK_STATUS' if user mentions task delay, cancellation, or completion
-- 'SHAGUN_ENTRY' if user mentions receiving shagun / gift money
-- 'UNKNOWN' if ambiguous
-
-Extract structured mutations and a concise, crisp human confirmation toast message.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              actionType: {
-                type: Type.STRING,
-                description: 'VENDOR_PAYMENT, GUEST_HEADCOUNT, CATERER_PLATE, TASK_STATUS, SHAGUN_ENTRY, or UNKNOWN',
-              },
-              toastMessage: {
-                type: Type.STRING,
-                description: 'Clean user-facing confirmation toast message',
-              },
-              mutations: {
-                type: Type.OBJECT,
-                properties: {
-                  vendorPayment: {
-                    type: Type.OBJECT,
-                    properties: {
-                      vendorIdOrName: { type: Type.STRING },
-                      amountPaid: { type: Type.NUMBER },
-                      paymentMode: { type: Type.STRING },
-                    },
-                  },
-                  guestAdjustment: {
-                    type: Type.OBJECT,
-                    properties: {
-                      deltaGuests: { type: Type.NUMBER },
-                      isNonVegDelta: { type: Type.NUMBER },
-                      isDrinkingDelta: { type: Type.NUMBER },
-                    },
-                  },
-                  catererPlates: {
-                    type: Type.OBJECT,
-                    properties: {
-                      claimedPlates: { type: Type.NUMBER },
-                    },
-                  },
-                  taskStatus: {
-                    type: Type.OBJECT,
-                    properties: {
-                      taskQuery: { type: Type.STRING },
-                      newStatus: { type: Type.STRING },
-                      delayDays: { type: Type.NUMBER },
-                    },
-                  },
-                  shagun: {
-                    type: Type.OBJECT,
-                    properties: {
-                      guestName: { type: Type.STRING },
-                      amount: { type: Type.NUMBER },
-                      mode: { type: Type.STRING },
-                    },
-                  },
-                },
-              },
-            },
-            required: ['actionType', 'toastMessage'],
-          },
-        },
-      });
-
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } catch (error) {
-      console.warn('Gemini command parser error, using deterministic fallback:', error);
-      const fallbackResult = parseNaturalCommandOffline(sanitized, currentState);
-      return res.json(fallbackResult);
-    }
-  });
-
-  // 2. AI Trade-off Scenarios Generator Route
-  app.post('/api/gemini/rebalance-tradeoffs', async (req, res) => {
-    const { budgetItems, deficitRupees, guestDelta, timelineDaysShift } = req.body;
-
-    if (!ai) {
-      const fallbackPlans = generateTradeOffScenariosOffline(
-        budgetItems || [],
-        Number(deficitRupees) || 50000,
-        Number(guestDelta) || 0,
-        Number(timelineDaysShift) || 0
-      );
-      return res.json({ plans: fallbackPlans });
-    }
-
-    try {
-      const prompt = `You are the financial crisis & dependency rebalancer for "shubharambh."
-Mathematical Deficit to solve: ₹${deficitRupees}
-Guest Surge: +${guestDelta} attendees
-Timeline Shift: ${timelineDaysShift} days earlier.
-Budget line items: ${JSON.stringify(budgetItems)}
-
-CRITICAL GUARDRAIL:
-Items with priorityRank === 1 are strictly [LOCKED] and MUST NEVER HAVE ANY BUDGET CUTS.
-Cuts must come exclusively from priorityRank 3, 4, and 5 (flexible categories like floral decor, stationery, photo drone tiers).
-Generate 3 distinct, mathematically sound Trade-Off Plans that total to the deficit.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              plans: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    id: { type: Type.STRING },
-                    title: { type: Type.STRING },
-                    summary: { type: Type.STRING },
-                    categoryAdjustments: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          category: { type: Type.STRING },
-                          deltaRupees: { type: Type.NUMBER },
-                          konkretAction: { type: Type.STRING },
-                        },
-                        required: ['category', 'deltaRupees', 'konkretAction'],
-                      },
-                    },
-                    timelineMitigation: { type: Type.STRING },
-                    riskRating: { type: Type.STRING },
-                    totalSavingsRupees: { type: Type.NUMBER },
-                  },
-                  required: ['id', 'title', 'summary', 'categoryAdjustments', 'timelineMitigation', 'riskRating', 'totalSavingsRupees'],
-                },
-              },
-            },
-            required: ['plans'],
-          },
-        },
-      });
-
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } catch (error) {
-      console.warn('Gemini trade-off error, using deterministic fallback:', error);
-      const fallbackPlans = generateTradeOffScenariosOffline(
-        budgetItems || [],
-        Number(deficitRupees) || 50000,
-        Number(guestDelta) || 0,
-        Number(timelineDaysShift) || 0
-      );
-      return res.json({ plans: fallbackPlans });
-    }
-  });
-
-  // 3. Vendor Quote Interrogator Route
-  app.post('/api/gemini/interrogate-quote', async (req, res) => {
-    const { rawQuoteText, budgetContext } = req.body;
-    const sanitized = sanitizeInput(rawQuoteText || '');
-
-    if (!sanitized) {
-      return res.status(400).json({ error: 'Quote text is required.' });
-    }
-
-    if (!ai) {
-      const fallbackAnalysis = interrogateVendorQuoteOffline(sanitized, budgetContext || { targetBudget: 150000 });
-      return res.json(fallbackAnalysis);
-    }
-
-    try {
-      const prompt = `You are a forensic Indian wedding & event vendor contract interrogator for "shubharambh."
-Raw Vendor WhatsApp Quote:
-"""
-${sanitized}
-"""
-Target Allocated Budget: ₹${budgetContext?.targetBudget || 150000}
-
-Extract:
-1. Vendor name & quoted total
-2. Per plate cost (if catering)
-3. Included items list
-4. Hidden costs, traps, and unbilled liabilities (e.g. 18% GST excluded, diesel generator charges, corkage fees, plate count minimum locks, setup overtime)
-5. Whether it is within budget
-6. 5 sharp, copyable WhatsApp negotiation questions`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              vendorName: { type: Type.STRING },
-              quotedTotal: { type: Type.NUMBER },
-              perPlateCost: { type: Type.NUMBER },
-              includedItems: { type: Type.ARRAY, items: { type: Type.STRING } },
-              hiddenCostsAndTraps: { type: Type.ARRAY, items: { type: Type.STRING } },
-              isWithinBudget: { type: Type.BOOLEAN },
-              negotiationQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
-              summaryNote: { type: Type.STRING },
-            },
-            required: ['vendorName', 'quotedTotal', 'includedItems', 'hiddenCostsAndTraps', 'isWithinBudget', 'negotiationQuestions', 'summaryNote'],
-          },
-        },
-      });
-
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } catch (error) {
-      console.warn('Gemini interrogator error, using deterministic fallback:', error);
-      const fallbackAnalysis = interrogateVendorQuoteOffline(sanitized, budgetContext || { targetBudget: 150000 });
-      return res.json(fallbackAnalysis);
-    }
-  });
-
   // 4. Host AI Assistant (Ideas & Anomaly Engine)
   app.post('/api/ai/assistant', async (req, res) => {
     const { message, eventState } = req.body;
@@ -307,7 +65,7 @@ Extract:
       const guestNum = Number(eventState?.guestCount) || 25;
       const eventName = eventState?.name || 'Celebration';
 
-      const prompt = `You are "shubharambh Brain" — an elite, hyper-contextual AI strategist and financial architect for Indian celebrations and life milestones.
+      const prompt = `You are "shubharambh Brain": an elite, hyper-contextual AI strategist and financial architect for Indian celebrations and life milestones.
 
 EVENT CONTEXT:
 - Event Name: "${eventName}"

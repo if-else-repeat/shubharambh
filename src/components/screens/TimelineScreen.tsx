@@ -166,8 +166,9 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">Task Title *</label>
+              <label htmlFor="timeline-task-title" className="block text-xs font-bold text-[#E5A91A] mb-1">Task Title *</label>
               <input
+                id="timeline-task-title"
                 type="text"
                 required
                 placeholder="e.g. Verify acoustic decibel permission with venue authority"
@@ -178,10 +179,11 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#E5A91A] mb-1">
+              <label htmlFor="timeline-task-due-date" className="block text-xs font-bold text-[#E5A91A] mb-1">
                 Target Due Date
               </label>
               <input
+                id="timeline-task-due-date"
                 type="text"
                 placeholder="e.g. Nov 15, 2026 or 1 Week Out"
                 value={dueDate}
