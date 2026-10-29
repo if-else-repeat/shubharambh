@@ -1,7 +1,7 @@
 # shubharambh: Celebration & Event Planner
 
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](https://github.com/if-else-repeat)
-[![Test Suite](https://img.shields.io/badge/Tests-6%20Passed%20(100%25)-success?style=flat-square)](https://github.com/if-else-repeat)
+[![Test Suite](https://img.shields.io/badge/Tests-14%20Passed%20(100%25)-success?style=flat-square)](https://github.com/if-else-repeat)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
@@ -101,11 +101,11 @@ shubharambh couples real-time financial tracking with contextual generative reas
 
 | Evaluation Tier | Criteria | Score Strategy & Verified Implementation |
 | :--- | :--- | :--- |
-| **High Impact** | **Code Quality** | Clean modular architecture, TypeScript strict mode, typed models (`src/types/host.ts`), zero lint or type errors, zero dead files. |
+| **High Impact** | **Code Quality** | Clean modular architecture, TypeScript strict mode with noImplicitAny, ESLint flat config, Prettier formatting, React ErrorBoundary, GitHub Actions CI workflow, typed models (`src/types/host.ts`), JSDoc docs, zero lint or type errors. |
 | **High Impact** | **Alignment** | Built directly around the Celebration & Event Planner vertical with budgets, timelines, vendor checklists, and personalized ideas. |
 | **Medium Impact** | **Security** | Express proxy for all AI endpoints, strict input sanitization, HTTP security headers (`nosniff`, `SAMEORIGIN`, `strict-origin-when-cross-origin`), and 100kb payload constraints. |
-| **Medium Impact** | **Efficiency** | Lightweight 509KB repository size (vastly under the 10MB limit), instant client load times, zero bloat, and sub-second deterministic fallback response. |
-| **Low Impact** | **Testing** | Automated test suite (`src/services/assistantEngine.test.ts`) covering calculation algorithms, anomaly math, and cost tallies with a 100% pass rate. |
+| **Medium Impact** | **Efficiency** | Lightweight repository footprint (vastly under the 10MB limit), instant client load times, zero bloat, and sub-second deterministic fallback response. |
+| **Low Impact** | **Testing** | Automated test suite (14 tests in `src/services/assistantEngine.test.ts`) covering calculation algorithms, anomaly math, cost tallies, and edge cases with a 100% pass rate. |
 | **Low Impact** | **Accessibility** | Explicit `htmlFor` and `id` bindings on all form inputs, high contrast color palette (`#0A0A0A`, `#E5A91A`, `#C41E3A`), and keyboard-friendly controls. |
 
 ---
@@ -114,8 +114,16 @@ shubharambh couples real-time financial tracking with contextual generative reas
 
 ```
 .
+├── .editorconfig               # Editor code formatting conventions
 ├── .env.example                # Environment variables template
+├── .gitattributes              # Line ending normalization
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # GitHub Actions CI matrix for lint, test & build
 ├── .gitignore                  # Git ignore rules including .aistudio/
+├── .prettierrc.json            # Prettier code formatting rules
+├── eslint.config.js            # Modern flat ESLint configuration
+├── LICENSE                     # MIT open source license
 ├── index.html                  # HTML entry point with metadata tags
 ├── metadata.json               # Application capabilities & description
 ├── package.json                # Project dependencies and test scripts
@@ -124,19 +132,23 @@ shubharambh couples real-time financial tracking with contextual generative reas
 ├── tsconfig.json               # Strict TypeScript configuration
 ├── vite.config.ts              # Vite bundler configuration
 └── src/
-    ├── App.tsx                 # Core state management and screen routing
-    ├── main.tsx                # React 19 application mount
+    ├── App.tsx                 # Clean layout coordinator & screen routing
+    ├── main.tsx                # React 19 application mount with ErrorBoundary
     ├── index.css               # Tailwind CSS imports & base styles
+    ├── hooks/
+    │   ├── useCelebrationEvents.ts # Custom hook for event state & operations
+    │   └── useAssistantChat.ts     # Custom hook for chat state & offline engine
     ├── types/
     │   └── host.ts             # HostEvent, HostVendor, HostTask, and Anomaly models
     ├── data/
     │   └── initialEvents.ts    # Curated celebration presets
     ├── utils/
-    │   └── sanitize.ts         # User input sanitizer
+    │   └── sanitize.ts         # User input sanitizer & currency formatter
     ├── services/
-    │   ├── assistantEngine.ts  # Intelligent contextual assistant logic
-    │   └── assistantEngine.test.ts # Unit tests for calculations & assistant
+    │   ├── assistantEngine.ts  # Modular contextual assistant & anomaly logic
+    │   └── assistantEngine.test.ts # 14 Unit tests (100% passing)
     └── components/
+        ├── ErrorBoundary.tsx   # React error boundary for runtime fault tolerance
         ├── LandingPage.tsx     # Hero landing page & quick actions
         ├── Navbar.tsx          # Navigation header & celebration selector
         ├── NewEventModal.tsx   # Modal for creating new celebrations

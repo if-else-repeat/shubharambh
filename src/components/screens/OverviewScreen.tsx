@@ -24,10 +24,8 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
   const percentSpent = Math.min(100, Math.round((totalCost / totalBudget) * 100));
   const remainingBudget = totalBudget - totalCost;
 
-  const bookedVendorsCount = event.vendors.filter((v) => v.status === 'Booked').length;
   const completedTasks = event.tasks.filter((t) => t.completed).length;
   const pendingTasks = event.tasks.filter((t) => !t.completed);
-  const taskPercent = event.tasks.length > 0 ? Math.round((completedTasks / event.tasks.length) * 100) : 0;
 
   const handlePromptClick = (prompt: string) => {
     if (onSelectPrompt) {

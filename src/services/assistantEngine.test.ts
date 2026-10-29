@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { processAssistantOffline } from './assistantEngine.ts';
-import { HostEvent, getVendorCost } from '../types/host.ts';
+import {
+  processAssistantOffline,
+  applyAnomalyAdjustments,
+  calculateAnomalyShock,
+  generateDecorRecommendations,
+  generateCateringRecommendations,
+  generateShoppingRecommendations,
+  generateLedgerAuditSummary,
+  ASSISTANT_CONFIG,
+} from './assistantEngine.ts';
+import { HostEvent, getVendorCost, AnomalyData } from '../types/host.ts';
+import { sanitizeInput, formatRupees } from '../utils/sanitize.ts';
+import { INITIAL_EVENTS } from '../data/initialEvents.ts';
 
 const mockWeddingEvent: HostEvent = {
   id: 'event-wedding-1',
@@ -39,10 +50,15 @@ const mockMicroEvent: HostEvent = {
 
 test('getVendorCost accurately tallies single cost field and handles backward compatibility', () => {
   assert.equal(getVendorCost({ id: '1', name: 'V1', category: 'Decor', cost: 45000, status: 'Booked' }), 45000);
-  // legacy actualCost / estimatedCost fallback check
-  assert.equal(getVendorCost({ id: '2', name: 'V2', category: 'Decor', actualCost: 32000, status: 'Pending' } as any), 32000);
-  assert.equal(getVendorCost({ id: '3', name: 'V3', category: 'Decor', estimatedCost: 18000, status: 'Paid' } as any), 18000);
-  assert.equal(getVendorCost({ id: '4', name: 'V4', category: 'Decor', status: 'Pending' } as any), 0);
+  assert.equal(getVendorCost({ id: '2', name: 'V2', category: 'Decor', actualCost: 32000, status: 'Pending' }), 32000);
+  assert.equal(getVendorCost({ id: '3', name: 'V3', category: 'Decor', estimatedCost: 18000, status: 'Paid' }), 18000);
+  assert.equal(getVendorCost({ id: '4', name: 'V4', category: 'Decor', status: 'Pending' }), 0);
+});
+
+test('getVendorCost handles zero, negative numbers, and undefined inputs safely', () => {
+  assert.equal(getVendorCost({ cost: 0 }), 0);
+  assert.equal(getVendorCost({ cost: -500 }), 0);
+  assert.equal(getVendorCost({}), 0);
 });
 
 test('processAssistantOffline detects guest surge anomaly and calculates math correctly', () => {
@@ -79,6 +95,22 @@ test('processAssistantOffline scales per-head costs down for micro celebrations'
   assert.ok(response.anomalyData.vendorAdjustments.length > 0);
 });
 
+test('processAssistantOffline gracefully handles anomaly with zero vendors', () => {
+  const emptyEvent: HostEvent = {
+    id: 'empty-1',
+    name: 'Simple Gathering',
+    totalBudget: 20000,
+    guestCount: 10,
+    date: '2025-10-10',
+    vendors: [],
+    tasks: [],
+  };
+  const response = processAssistantOffline('10 extra guests joined', emptyEvent);
+  assert.equal(response.isAnomaly, true);
+  assert.ok(response.anomalyData);
+  assert.equal(response.anomalyData.vendorAdjustments.length, 0);
+});
+
 test('processAssistantOffline returns targeted decor recommendations for micro vs grand events', () => {
   const microDecor = processAssistantOffline('Give me some decor ideas', mockMicroEvent);
   assert.equal(microDecor.isAnomaly, false);
@@ -102,4 +134,90 @@ test('processAssistantOffline gives shopping advice for clothing and wedding car
   const shoppingAdvice = processAssistantOffline('Where should we go shopping for lehengas and cards?', mockWeddingEvent);
   assert.equal(shoppingAdvice.isAnomaly, false);
   assert.ok(shoppingAdvice.reply.includes('Shopping') || shoppingAdvice.reply.includes('Lehenga') || shoppingAdvice.reply.includes('Chandni Chowk') || shoppingAdvice.reply.includes('WhatsApp'));
+});
+
+test('processAssistantOffline returns structured audit summary for general queries', () => {
+  const generalResponse = processAssistantOffline('Hello, give me a status update', mockWeddingEvent);
+  assert.equal(generalResponse.isAnomaly, false);
+  assert.ok(generalResponse.reply.includes('Budget Cap'));
+  assert.ok(generalResponse.reply.includes('200 attendees'));
+});
+
+test('sanitizeInput strips malicious angle brackets and javascript pseudo-protocol', () => {
+  assert.equal(sanitizeInput('<script>alert("xss")</script>Hello'), 'alert("xss")Hello');
+  assert.equal(sanitizeInput('javascript:doSomething()'), 'doSomething()');
+  assert.equal(sanitizeInput('   Valid Celebration Name   '), 'Valid Celebration Name');
+  assert.equal(sanitizeInput(''), '');
+  assert.equal(sanitizeInput('<<<>>>'), '');
+});
+
+test('formatRupees formats Indian currency correctly with INR symbol and negatives', () => {
+  assert.equal(formatRupees(50000), '₹50,000');
+  assert.equal(formatRupees(1500000), '₹15,00,000');
+  assert.equal(formatRupees(-25000), '-₹25,000');
+  assert.equal(formatRupees(0), '₹0');
+  assert.equal(formatRupees(NaN), '₹0');
+});
+
+test('INITIAL_EVENTS are structured with valid non-empty budgets, vendors, and tasks', () => {
+  const eventKeys = Object.keys(INITIAL_EVENTS);
+  assert.ok(eventKeys.length >= 3);
+  for (const key of eventKeys) {
+    const ev = INITIAL_EVENTS[key];
+    assert.ok(ev.id);
+    assert.ok(ev.name);
+    assert.ok(ev.totalBudget > 0);
+    assert.ok(ev.vendors.length > 0);
+    assert.ok(ev.tasks.length > 0);
+  }
+});
+
+test('applyAnomalyAdjustments updates celebration state immutably', () => {
+  const anomalyData: AnomalyData = {
+    calculatedDeficit: 50000,
+    guestCountDelta: 20,
+    budgetDropPercent: 10,
+    newBudgetCap: 1350000,
+    recommendations: ['Trim venue costs'],
+    vendorAdjustments: [
+      {
+        vendorId: 'v1',
+        name: 'Heritage Palace Courtyard',
+        cutAmount: 50000,
+        newCost: 550000,
+        rationale: 'Negotiated off-peak rate',
+      },
+    ],
+  };
+
+  const updated = applyAnomalyAdjustments(mockWeddingEvent, anomalyData);
+
+  // Original remains untouched
+  assert.equal(mockWeddingEvent.totalBudget, 1500000);
+  assert.equal(mockWeddingEvent.guestCount, 200);
+  assert.equal(getVendorCost(mockWeddingEvent.vendors[0]), 600000);
+
+  // Updated has modified budget, guests, and vendor cost
+  assert.equal(updated.totalBudget, 1350000);
+  assert.equal(updated.guestCount, 220);
+  assert.equal(getVendorCost(updated.vendors[0]), 550000);
+});
+
+test('modular sub-functions execute standalone with deterministic outputs', () => {
+  const anomalyRes = calculateAnomalyShock('budget drop 10%', mockWeddingEvent);
+  assert.equal(anomalyRes.isAnomaly, true);
+
+  const decorRes = generateDecorRecommendations(mockMicroEvent, true, 15000);
+  assert.equal(decorRes.isAnomaly, false);
+
+  const caterRes = generateCateringRecommendations(mockWeddingEvent, false, 1500000, 200);
+  assert.equal(caterRes.isAnomaly, false);
+
+  const shopRes = generateShoppingRecommendations(mockWeddingEvent);
+  assert.equal(shopRes.isAnomaly, false);
+
+  const auditRes = generateLedgerAuditSummary(mockWeddingEvent);
+  assert.equal(auditRes.isAnomaly, false);
+
+  assert.equal(ASSISTANT_CONFIG.PER_GUEST_CATERING.MICRO, 350);
 });

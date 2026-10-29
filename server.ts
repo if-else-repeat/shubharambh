@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -12,21 +12,216 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+interface RawVendorItem {
+  name?: string;
+  category?: string;
+  cost?: number;
+  actualCost?: number;
+  estimatedCost?: number;
+  status?: 'Pending' | 'Booked' | 'Paid';
+}
+
+interface RawTaskItem {
+  title: string;
+  deadlineGroup?: string;
+  dueDate?: string;
+  completed?: boolean;
+}
+
+function generateDefaultEventPlan(name: string, budget: number, guests: number) {
+  const isMicro = budget < 35000 || guests <= 25;
+  const isRitual =
+    name.toLowerCase().includes('puja') ||
+    name.toLowerCase().includes('griha') ||
+    name.toLowerCase().includes('haldi') ||
+    name.toLowerCase().includes('mehendi') ||
+    name.toLowerCase().includes('godh');
+
+  if (isMicro) {
+    return {
+      vendors: [
+        {
+          id: `v-${Date.now()}-1`,
+          name: 'Custom Photo Cake & Desserts',
+          category: 'Catering',
+          cost: Math.round(budget * 0.28),
+          status: 'Booked' as const,
+        },
+        {
+          id: `v-${Date.now()}-2`,
+          name: 'Food Platters & Beverage Crate',
+          category: 'Catering',
+          cost: Math.round(budget * 0.42),
+          status: 'Pending' as const,
+        },
+        {
+          id: `v-${Date.now()}-3`,
+          name: 'Fairy Lights & Polaroid Corner',
+          category: 'Decor',
+          cost: Math.round(budget * 0.12),
+          status: 'Pending' as const,
+        },
+      ],
+      tasks: [
+        {
+          id: `t-${Date.now()}-1`,
+          title: 'Order custom cake with custom design',
+          deadlineGroup: '1 Month Out',
+          dueDate: 'TBD',
+          completed: true,
+        },
+        {
+          id: `t-${Date.now()}-2`,
+          title: 'Curate party playlist & test sound system',
+          deadlineGroup: 'Week Of',
+          dueDate: 'TBD',
+          completed: false,
+        },
+        {
+          id: `t-${Date.now()}-3`,
+          title: 'Confirm RSVP head count & order bulk platters',
+          deadlineGroup: 'Day Of',
+          dueDate: 'TBD',
+          completed: false,
+        },
+      ],
+    };
+  }
+
+  if (isRitual) {
+    return {
+      vendors: [
+        {
+          id: `v-${Date.now()}-1`,
+          name: 'Pandit Ji Dakshina & Puja Samagri',
+          category: 'Ritual',
+          cost: Math.round(budget * 0.18),
+          status: 'Booked' as const,
+        },
+        {
+          id: `v-${Date.now()}-2`,
+          name: 'Traditional Halwai & Prasad Feast',
+          category: 'Catering',
+          cost: Math.round(budget * 0.42),
+          status: 'Booked' as const,
+        },
+        {
+          id: `v-${Date.now()}-3`,
+          name: 'Fresh Marigold Torans & Brass Urulis',
+          category: 'Decor',
+          cost: Math.round(budget * 0.2),
+          status: 'Pending' as const,
+        },
+        {
+          id: `v-${Date.now()}-4`,
+          name: 'Return Gifts (Brass Diyas & Dry Fruits)',
+          category: 'Stationery',
+          cost: Math.round(budget * 0.15),
+          status: 'Pending' as const,
+        },
+      ],
+      tasks: [
+        {
+          id: `t-${Date.now()}-1`,
+          title: 'Lock auspicious shubh muhurat & book Pandit Ji',
+          deadlineGroup: '1 Month Out',
+          dueDate: 'TBD',
+          completed: true,
+        },
+        {
+          id: `t-${Date.now()}-2`,
+          title: 'Procure dry puja samagri & fresh havan items',
+          deadlineGroup: 'Week Of',
+          dueDate: 'TBD',
+          completed: false,
+        },
+        {
+          id: `t-${Date.now()}-3`,
+          title: 'Organize return gifts and packaging for departing guests',
+          deadlineGroup: 'Day Of',
+          dueDate: 'TBD',
+          completed: false,
+        },
+      ],
+    };
+  }
+
+  return {
+    vendors: [
+      {
+        id: `v-${Date.now()}-1`,
+        name: 'Primary Venue Space',
+        category: 'Venue',
+        cost: Math.round(budget * 0.35),
+        status: 'Booked' as const,
+      },
+      {
+        id: `v-${Date.now()}-2`,
+        name: 'Catering & Beverages',
+        category: 'Catering',
+        cost: Math.round(budget * 0.35),
+        status: 'Booked' as const,
+      },
+      {
+        id: `v-${Date.now()}-3`,
+        name: 'Ambient Decor & Floral Staging',
+        category: 'Decor',
+        cost: Math.round(budget * 0.12),
+        status: 'Pending' as const,
+      },
+      {
+        id: `v-${Date.now()}-4`,
+        name: 'Cinematic Photography & Sound',
+        category: 'Photography',
+        cost: Math.round(budget * 0.1),
+        status: 'Pending' as const,
+      },
+    ],
+    tasks: [
+      {
+        id: `t-${Date.now()}-1`,
+        title: 'Finalize venue lease agreement and deposit',
+        deadlineGroup: '3 Months Out',
+        dueDate: 'TBD',
+        completed: true,
+      },
+      {
+        id: `t-${Date.now()}-2`,
+        title: 'Lock menu tasting & verify plate count audit clauses',
+        deadlineGroup: '1 Month Out',
+        dueDate: 'TBD',
+        completed: false,
+      },
+      {
+        id: `t-${Date.now()}-3`,
+        title: 'Disburse RTGS advance payments to caterer & decorators',
+        deadlineGroup: 'Week Of',
+        dueDate: 'TBD',
+        completed: false,
+      },
+    ],
+  };
+}
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  // Security headers & body limit
-  app.use((_req, res, next) => {
+  // Security headers & request body limits
+  app.use((_req: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self' 'unsafe-inline' https: http: data: blob: ws: wss:; frame-ancestors 'self' https:;"
+    );
     next();
   });
   app.use(express.json({ limit: '100kb' }));
 
-  // Initialize Gemini if API key is provided
+  // Initialize Gemini client if environment key is provided
   let ai: GoogleGenAI | null = null;
   if (process.env.GEMINI_API_KEY) {
     try {
@@ -46,13 +241,16 @@ async function startServer() {
     console.log('No GEMINI_API_KEY detected. Running in deterministic offline fallback mode.');
   }
 
-  // 4. Host AI Assistant (Ideas & Anomaly Engine)
-  app.post('/api/ai/assistant', async (req, res) => {
+  // 1. Host AI Assistant (Ideas & Anomaly Engine)
+  app.post('/api/ai/assistant', async (req: Request, res: Response) => {
     const { message, eventState } = req.body;
     const sanitized = sanitizeInput(message || '');
 
     if (!sanitized) {
       return res.status(400).json({ error: 'Message text is required.' });
+    }
+    if (sanitized.length > 5000) {
+      return res.status(400).json({ error: 'Message exceeds maximum length.' });
     }
 
     if (!ai) {
@@ -153,15 +351,17 @@ CRITICAL CULTURAL & FINANCIAL REASONING RULES:
       const parsed = JSON.parse(response.text || '{}');
       return res.json({
         reply: parsed.reply,
-        isAnomaly: !!parsed.isAnomaly,
-        anomalyData: parsed.isAnomaly ? {
-          calculatedDeficit: parsed.calculatedDeficit || 0,
-          guestCountDelta: parsed.guestCountDelta || 0,
-          budgetDropPercent: parsed.budgetDropPercent || 0,
-          newBudgetCap: parsed.newBudgetCap || eventState?.totalBudget,
-          recommendations: parsed.recommendations || [],
-          vendorAdjustments: parsed.vendorAdjustments || [],
-        } : null,
+        isAnomaly: Boolean(parsed.isAnomaly),
+        anomalyData: parsed.isAnomaly
+          ? {
+              calculatedDeficit: parsed.calculatedDeficit || 0,
+              guestCountDelta: parsed.guestCountDelta || 0,
+              budgetDropPercent: parsed.budgetDropPercent || 0,
+              newBudgetCap: parsed.newBudgetCap || eventState?.totalBudget,
+              recommendations: parsed.recommendations || [],
+              vendorAdjustments: parsed.vendorAdjustments || [],
+            }
+          : null,
       });
     } catch (err) {
       console.warn('Gemini assistant route error, using deterministic fallback:', err);
@@ -170,68 +370,15 @@ CRITICAL CULTURAL & FINANCIAL REASONING RULES:
     }
   });
 
-  // 5. Intelligent Event Plan & Ledger Generator
-  app.post('/api/ai/generate-event-plan', async (req, res) => {
+  // 2. Intelligent Event Plan & Ledger Generator
+  app.post('/api/ai/generate-event-plan', async (req: Request, res: Response) => {
     const { name, totalBudget, guestCount, date } = req.body;
-    const sanitizedName = sanitizeInput(name || 'Celebration');
-    const budgetNum = Number(totalBudget) || 50000;
-    const guestNum = Number(guestCount) || 25;
-
-    const fallbackPlan = () => {
-      const isMicro = budgetNum < 35000 || guestNum <= 25;
-      const isRitual =
-        sanitizedName.toLowerCase().includes('puja') ||
-        sanitizedName.toLowerCase().includes('griha') ||
-        sanitizedName.toLowerCase().includes('haldi') ||
-        sanitizedName.toLowerCase().includes('mehendi') ||
-        sanitizedName.toLowerCase().includes('godh');
-
-      if (isMicro) {
-        return {
-          vendors: [
-            { id: `v-${Date.now()}-1`, name: 'Custom Photo Cake & Desserts', category: 'Catering', cost: Math.round(budgetNum * 0.28), status: 'Booked' },
-            { id: `v-${Date.now()}-2`, name: 'Food Platters & Beverage Crate', category: 'Catering', cost: Math.round(budgetNum * 0.42), status: 'Pending' },
-            { id: `v-${Date.now()}-3`, name: 'Fairy Lights & Polaroid Corner', category: 'Decor', cost: Math.round(budgetNum * 0.12), status: 'Pending' },
-          ],
-          tasks: [
-            { id: `t-${Date.now()}-1`, title: 'Order custom cake with custom design', deadlineGroup: '1 Month Out', dueDate: 'TBD', completed: true },
-            { id: `t-${Date.now()}-2`, title: 'Curate party playlist & test sound system', deadlineGroup: 'Week Of', dueDate: 'TBD', completed: false },
-            { id: `t-${Date.now()}-3`, title: 'Confirm RSVP head count & order bulk platters', deadlineGroup: 'Day Of', dueDate: 'TBD', completed: false },
-          ],
-        };
-      }
-      if (isRitual) {
-        return {
-          vendors: [
-            { id: `v-${Date.now()}-1`, name: 'Pandit Ji Dakshina & Puja Samagri', category: 'Ritual', cost: Math.round(budgetNum * 0.18), status: 'Booked' },
-            { id: `v-${Date.now()}-2`, name: 'Traditional Halwai & Prasad Feast', category: 'Catering', cost: Math.round(budgetNum * 0.42), status: 'Booked' },
-            { id: `v-${Date.now()}-3`, name: 'Fresh Marigold Torans & Brass Urulis', category: 'Decor', cost: Math.round(budgetNum * 0.2), status: 'Pending' },
-            { id: `v-${Date.now()}-4`, name: 'Return Gifts (Brass Diyas & Dry Fruits)', category: 'Stationery', cost: Math.round(budgetNum * 0.15), status: 'Pending' },
-          ],
-          tasks: [
-            { id: `t-${Date.now()}-1`, title: 'Lock auspicious shubh muhurat & book Pandit Ji', deadlineGroup: '1 Month Out', dueDate: 'TBD', completed: true },
-            { id: `t-${Date.now()}-2`, title: 'Procure dry puja samagri & fresh havan items', deadlineGroup: 'Week Of', dueDate: 'TBD', completed: false },
-            { id: `t-${Date.now()}-3`, title: 'Organize return gifts and packaging for departing guests', deadlineGroup: 'Day Of', dueDate: 'TBD', completed: false },
-          ],
-        };
-      }
-      return {
-        vendors: [
-          { id: `v-${Date.now()}-1`, name: 'Primary Venue Space', category: 'Venue', cost: Math.round(budgetNum * 0.35), status: 'Booked' },
-          { id: `v-${Date.now()}-2`, name: 'Catering & Beverages', category: 'Catering', cost: Math.round(budgetNum * 0.35), status: 'Booked' },
-          { id: `v-${Date.now()}-3`, name: 'Ambient Decor & Floral Staging', category: 'Decor', cost: Math.round(budgetNum * 0.12), status: 'Pending' },
-          { id: `v-${Date.now()}-4`, name: 'Cinematic Photography & Sound', category: 'Photography', cost: Math.round(budgetNum * 0.1), status: 'Pending' },
-        ],
-        tasks: [
-          { id: `t-${Date.now()}-1`, title: 'Finalize venue lease agreement and deposit', deadlineGroup: '3 Months Out', dueDate: 'TBD', completed: true },
-          { id: `t-${Date.now()}-2`, title: 'Lock menu tasting & verify plate count audit clauses', deadlineGroup: '1 Month Out', dueDate: 'TBD', completed: false },
-          { id: `t-${Date.now()}-3`, title: 'Disburse RTGS advance payments to caterer & decorators', deadlineGroup: 'Week Of', dueDate: 'TBD', completed: false },
-        ],
-      };
-    };
+    const sanitizedName = sanitizeInput(name || 'Celebration').slice(0, 200);
+    const budgetNum = Math.min(100000000, Math.max(1000, Number(totalBudget) || 50000));
+    const guestNum = Math.min(10000, Math.max(1, Number(guestCount) || 25));
 
     if (!ai) {
-      return res.json(fallbackPlan());
+      return res.json(generateDefaultEventPlan(sanitizedName, budgetNum, guestNum));
     }
 
     try {
@@ -275,7 +422,10 @@ Return clean JSON matching the schema.`;
                   type: Type.OBJECT,
                   properties: {
                     title: { type: Type.STRING },
-                    deadlineGroup: { type: Type.STRING, description: '3 Months Out, 1 Month Out, Week Of, or Day Of' },
+                    deadlineGroup: {
+                      type: Type.STRING,
+                      description: '3 Months Out, 1 Month Out, Week Of, or Day Of',
+                    },
                     dueDate: { type: Type.STRING },
                     completed: { type: Type.BOOLEAN },
                   },
@@ -289,14 +439,14 @@ Return clean JSON matching the schema.`;
       });
 
       const parsed = JSON.parse(response.text || '{}');
-      const vendorsWithIds = (parsed.vendors || []).map((v: any, i: number) => ({
+      const vendorsWithIds = (parsed.vendors || []).map((v: RawVendorItem, i: number) => ({
         id: `v-${Date.now()}-${i}`,
-        name: v.name,
-        category: v.category,
+        name: v.name || 'Expense Item',
+        category: v.category || 'Other',
         cost: Number(v.cost ?? v.actualCost ?? v.estimatedCost) || 0,
         status: v.status || 'Pending',
       }));
-      const tasksWithIds = (parsed.tasks || []).map((t: any, i: number) => ({
+      const tasksWithIds = (parsed.tasks || []).map((t: RawTaskItem, i: number) => ({
         ...t,
         id: `t-${Date.now()}-${i}`,
       }));
@@ -304,23 +454,23 @@ Return clean JSON matching the schema.`;
       if (vendorsWithIds.length > 0) {
         return res.json({ vendors: vendorsWithIds, tasks: tasksWithIds });
       }
-      return res.json(fallbackPlan());
+      return res.json(generateDefaultEventPlan(sanitizedName, budgetNum, guestNum));
     } catch (e) {
       console.warn('Failed to generate AI event plan with Gemini, using cultural fallback:', e);
-      return res.json(fallbackPlan());
+      return res.json(generateDefaultEventPlan(sanitizedName, budgetNum, guestNum));
     }
   });
 
-  // Health check route
-  app.get('/api/health', (req, res) => {
+  // 3. Health check endpoint
+  app.get('/api/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
-      hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
       timestamp: new Date().toISOString(),
     });
   });
 
-  // Dev mode Vite middleware or Production static files
+  // 4. Dev mode Vite middleware or Production static files
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -329,14 +479,32 @@ Return clean JSON matching the schema.`;
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (req, res) => {
+    app.get('*', (_req: Request, res: Response) => {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`shubharambh. server running on http://0.0.0.0:${PORT}`);
+  // 5. Global error handling middleware
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Unhandled server error:', err);
+    res.status(500).json({ error: 'Internal server error occurred.' });
   });
+
+  // 6. Server launch with graceful termination listener
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`shubharambh server running on http://0.0.0.0:${PORT}`);
+  });
+
+  const handleShutdown = (signal: string) => {
+    console.log(`Received ${signal}. Gracefully closing HTTP server...`);
+    server.close(() => {
+      console.log('HTTP server closed successfully.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
 }
 
 startServer();

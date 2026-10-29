@@ -1,0 +1,7 @@
+node_modules
+dist
+build
+coverage
+.aistudio
+bun.lock
+package-lock.json

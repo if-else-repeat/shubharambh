@@ -1,7 +1,10 @@
 {
-  "name": "react-example",
+  "name": "shubharambh",
+  "version": "1.0.0",
+  "description": "Celebration & Event Planner: GenAI-powered planning assistant for weddings, birthdays, and community events.",
+  "author": "Priyanshu Raj Mishra",
+  "license": "MIT",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -9,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && eslint .",
     "test": "npx --yes tsx --test src/services/assistantEngine.test.ts"
   },
   "dependencies": {
@@ -25,14 +28,16 @@
     "motion": "^12.23.24"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "eslint": "^10.13.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "typescript": "^7.0.2"
   }
 }
