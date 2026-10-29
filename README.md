@@ -128,13 +128,15 @@ shubharambh couples real-time financial tracking with contextual generative reas
 ├── metadata.json               # Application capabilities & description
 ├── package.json                # Project dependencies and test scripts
 ├── README.md                   # Comprehensive project documentation
-├── server.ts                   # Express server with security headers & AI routes
+├── server.ts                   # Clean Express application entry point & graceful shutdown
 ├── tsconfig.json               # Strict TypeScript configuration
 ├── vite.config.ts              # Vite bundler configuration
 └── src/
     ├── App.tsx                 # Clean layout coordinator & screen routing
     ├── main.tsx                # React 19 application mount with ErrorBoundary
     ├── index.css               # Tailwind CSS imports & base styles
+    ├── constants/
+    │   └── celebration.ts      # Centralized categories, deadlines, and theme tokens
     ├── hooks/
     │   ├── useCelebrationEvents.ts # Custom hook for event state & operations
     │   └── useAssistantChat.ts     # Custom hook for chat state & offline engine
@@ -145,19 +147,45 @@ shubharambh couples real-time financial tracking with contextual generative reas
     ├── utils/
     │   └── sanitize.ts         # User input sanitizer & currency formatter
     ├── services/
-    │   ├── assistantEngine.ts  # Modular contextual assistant & anomaly logic
+    │   ├── assistantEngine.ts  # Pure modular assistant & anomaly calculations
     │   └── assistantEngine.test.ts # 14 Unit tests (100% passing)
+    ├── server/
+    │   ├── defaultPlans.ts     # Cultural fallback celebration plans
+    │   ├── geminiService.ts    # Server-side Gemini 3.8 Flash model execution
+    │   └── routes/
+    │       └── aiRouter.ts     # Express router for assistant & plan endpoints
     └── components/
         ├── ErrorBoundary.tsx   # React error boundary for runtime fault tolerance
         ├── LandingPage.tsx     # Hero landing page & quick actions
         ├── Navbar.tsx          # Navigation header & celebration selector
         ├── NewEventModal.tsx   # Modal for creating new celebrations
+        ├── common/
+        │   ├── ScreenHeaderNav.tsx # Reusable sub-navigation bar
+        │   └── MarkdownText.tsx    # Markdown renderer for assistant messages
+        ├── budget/
+        │   ├── BudgetSummaryMetrics.tsx # 3-card metrics & spending progress
+        │   ├── VendorItemRow.tsx        # Individual vendor row with inline edit
+        │   └── AddVendorForm.tsx        # Accessible form to add line items
+        ├── checklist/
+        │   ├── TaskItemRow.tsx          # Checklist task row with toggle
+        │   ├── AddTaskForm.tsx          # Accessible form to add milestones
+        │   └── TaskProgressHeader.tsx   # Execution progress indicator
+        ├── assistant/
+        │   ├── ChatMessageBubble.tsx    # Chat bubble with role styling
+        │   ├── AnomalyActionCard.tsx    # Structured anomaly box & apply button
+        │   └── QuickPromptChips.tsx     # Dynamic suggested prompt buttons
+        ├── overview/
+        │   ├── OverviewHeroBanner.tsx   # Celebration header & delete modal
+        │   └── ShortcutNavigationCards.tsx # 3 primary execution cards
+        ├── menu/
+        │   ├── CelebrationSwitcherCard.tsx # Multi-event switch & delete card
+        │   └── MenuFooterCredits.tsx       # Author profile links & attribution
         └── screens/
-            ├── OverviewScreen.tsx  # Celebration summary cards & quick links
-            ├── VendorsScreen.tsx   # Single cost tally ledger & vendor tracker
-            ├── TimelineScreen.tsx  # Chronological milestone execution checklist
-            ├── AssistantScreen.tsx # GenAI chat & budget anomaly rebalancer
-            └── MenuScreen.tsx      # Multi-event management & author details
+            ├── OverviewScreen.tsx  # Executive dashboard layout
+            ├── VendorsScreen.tsx   # Single cost tally ledger layout
+            ├── TimelineScreen.tsx  # Milestone checklist layout
+            ├── AssistantScreen.tsx # GenAI assistant layout
+            └── MenuScreen.tsx      # Multi-event management layout
 ```
 
 ---
